@@ -3,7 +3,7 @@
 MQ_REPO_URL := https://github.com/harehare/mq
 MQ_REPO_DIR := .mq
 MQ_FFI_DIR  := $(MQ_REPO_DIR)/crates/mq-ffi
-MQ_LIB_DIR  := $(MQ_REPO_DIR)/target/release
+MQ_LIB_DIR  := $(MQ_REPO_DIR)/target/release-ffi
 
 setup:
 	@if [ -d "$(MQ_REPO_DIR)/.git" ]; then \
@@ -13,7 +13,7 @@ setup:
 	fi
 
 build-rust: setup
-	cd $(MQ_REPO_DIR) && cargo build --release -p mq-ffi
+	cd $(MQ_REPO_DIR) && cargo build --profile release-ffi -p mq-ffi
 
 build: build-rust
 	mvn compile -q

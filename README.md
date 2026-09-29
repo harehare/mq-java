@@ -106,7 +106,12 @@ for (String value : result) {
 | `run(String code, String content, InputFormat format)` | Run a query with a specified input format |
 | `static htmlToMarkdown(String html)` | Convert HTML to Markdown |
 | `static htmlToMarkdown(String html, ConversionOptions options)` | Convert HTML to Markdown with options |
-| `close()` | Release native resources (`AutoCloseable`) |
+| `static version()` | Return the mq-ffi library version |
+| `setMaxCallStackDepth(int depth)` | Limit call stack depth |
+| `setSearchPaths(List<String> paths)` | Set module search paths |
+| `defineStringValue(String name, String value)` | Define a string variable for later queries |
+| `importModule(String name)` / `loadModule(String name)` | Import / load a module |
+|| `close()` | Release native resources (`AutoCloseable`) |
 
 ### `InputFormat`
 
@@ -125,6 +130,7 @@ for (String value : result) {
 | `extractScriptsAsCodeBlocks` | `boolean` | Extract `<script>` tags as code blocks |
 | `generateFrontMatter` | `boolean` | Generate front matter from HTML `<head>` metadata |
 | `useTitleAsH1` | `boolean` | Use `<title>` as an H1 heading |
+| `baseUrl` | `String` | Base URL for resolving relative `href`/`src` (falls back to `<base href>`) |
 
 ## License
 
