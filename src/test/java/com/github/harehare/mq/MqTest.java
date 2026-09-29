@@ -133,6 +133,44 @@ class MqTest {
             String markdown = Mq.htmlToMarkdown(html, options);
             assertTrue(markdown.contains("# Page Title"));
         }
+
+        @Test
+        void resolvesRelativeLinksWithBaseUrl() {
+            ConversionOptions options = new ConversionOptions();
+            options.baseUrl = "https://example.com/docs/";
+            String markdown = Mq.htmlToMarkdown("<a href=\"page.html\">link</a>", options);
+            assertTrue(markdown.contains("https://example.com/docs/page.html"), markdown);
+        }
+
+        @Test
+        void extractsScriptsAsCodeBlocks() {
+            ConversionOptions options = new ConversionOptions();
+            options.extractScriptsAsCodeBlocks = true;
+            String markdown = Mq.htmlToMarkdown("<script>var x = 1;</script>", options);
+            assertTrue(markdown.contains("var x = 1;"), markdown);
+        }
+    }
+
+    @Nested
+    class EngineSettings {
+
+        @Test
+        void versionIsNotEmpty() {
+            assertFalse(Mq.version().isEmpty());
+        }
+
+        @Test
+        void definesStringValue() {
+            mq.defineStringValue("greeting", "hello");
+            assertEquals("hello", mq.run("greeting", "x", InputFormat.TEXT).text());
+        }
+
+        @Test
+        void setsMaxCallStackDepthAndSearchPaths() {
+            mq.setMaxCallStackDepth(10);
+            mq.setSearchPaths(List.of("/nonexistent"));
+            assertThrows(MqException.class, () -> mq.importModule("no_such_module"));
+        }
     }
 
     @Nested

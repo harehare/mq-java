@@ -1,7 +1,11 @@
 package com.github.harehare.mq;
 
+import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * Java bindings for mq - a jq-like tool for Markdown processing.
@@ -98,8 +102,20 @@ public class Mq implements AutoCloseable {
      */
     public static String htmlToMarkdown(String htmlContent, ConversionOptions options) {
         PointerByReference errorMsgRef = new PointerByReference();
+        MqLibrary.MqConversionOptionsStruct opts = new MqLibrary.MqConversionOptionsStruct();
+        opts.extractScriptsAsCodeBlocks = (byte) (options.extractScriptsAsCodeBlocks ? 1 : 0);
+        opts.generateFrontMatter = (byte) (options.generateFrontMatter ? 1 : 0);
+        opts.useTitleAsH1 = (byte) (options.useTitleAsH1 ? 1 : 0);
+        Memory baseUrlMem = null;
+        if (options.baseUrl != null) {
+            byte[] bytes = options.baseUrl.getBytes(StandardCharsets.UTF_8);
+            baseUrlMem = new Memory(bytes.length + 1L);
+            baseUrlMem.write(0, bytes, 0, bytes.length);
+            baseUrlMem.setByte(bytes.length, (byte) 0);
+            opts.baseUrl = baseUrlMem;
+        }
         Pointer resultPtr = MqLibrary.INSTANCE.mq_html_to_markdown(
-                htmlContent, options, errorMsgRef
+                htmlContent, opts, errorMsgRef
         );
         if (resultPtr == null || resultPtr == Pointer.NULL) {
             Pointer errorPtr = errorMsgRef.getValue();
@@ -113,6 +129,79 @@ public class Mq implements AutoCloseable {
             return resultPtr.getString(0);
         } finally {
             MqLibrary.INSTANCE.mq_free_string(resultPtr);
+        }
+    }
+
+    /**
+     * Returns the mq-ffi library version.
+     *
+     * @return the version string
+     */
+    public static String version() {
+        return MqLibrary.INSTANCE.mq_version();
+    }
+
+    /**
+     * Sets the maximum call stack depth, guarding against runaway recursion.
+     *
+     * @param depth the maximum call stack depth
+     */
+    public void setMaxCallStackDepth(int depth) {
+        ensureOpen();
+        MqLibrary.INSTANCE.mq_set_max_call_stack_depth(engine, depth);
+    }
+
+    /**
+     * Sets the search paths used to resolve modules.
+     *
+     * @param paths the module search paths
+     */
+    public void setSearchPaths(List<String> paths) {
+        ensureOpen();
+        MqLibrary.INSTANCE.mq_set_search_paths(engine, paths.toArray(new String[0]), paths.size());
+    }
+
+    /**
+     * Defines a string variable that can be referenced from subsequently evaluated mq code.
+     *
+     * @param name  the variable name
+     * @param value the variable value
+     */
+    public void defineStringValue(String name, String value) {
+        ensureOpen();
+        MqLibrary.INSTANCE.mq_define_string_value(engine, name, value);
+    }
+
+    /**
+     * Imports a module by name, searched for in the configured search paths.
+     *
+     * @param moduleName the module name
+     * @throws MqException if the import fails
+     */
+    public void importModule(String moduleName) {
+        ensureOpen();
+        throwIfError(MqLibrary.INSTANCE.mq_import_module(engine, moduleName));
+    }
+
+    /**
+     * Loads a module by name, searched for in the configured search paths.
+     *
+     * @param moduleName the module name
+     * @throws MqException if the load fails
+     */
+    public void loadModule(String moduleName) {
+        ensureOpen();
+        throwIfError(MqLibrary.INSTANCE.mq_load_module(engine, moduleName));
+    }
+
+    private static void throwIfError(Pointer errorPtr) {
+        if (errorPtr == null || errorPtr == Pointer.NULL) {
+            return;
+        }
+        try {
+            throw new MqException(errorPtr.getString(0));
+        } finally {
+            MqLibrary.INSTANCE.mq_free_string(errorPtr);
         }
     }
 
